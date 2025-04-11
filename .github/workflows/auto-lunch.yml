@@ -1,0 +1,33 @@
+name: 🍱 급식 자동 업데이트
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # 매일 00:00 UTC (한국 기준 오전 9시)
+  workflow_dispatch:  # 수동 실행도 가능
+
+jobs:
+  update-lunch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 저장소 가져오기
+        uses: actions/checkout@v2
+
+      - name: 🐍 Python 설치
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: 📦 라이브러리 설치
+        run: pip install requests
+
+      - name: 🍽️ 급식 정보 가져오기
+        run: python get_lunch.py
+
+      - name: 💾 변경사항 커밋 & 푸시
+        run: |
+          git config --global user.name 'GitHub Action'
+          git config --global user.email 'action@github.com'
+          git add lunch.json
+          git commit -m "📆 자동 급식 정보 갱신" || echo "변경 없음"
+          git push
