@@ -1,44 +1,43 @@
-
 import requests, json
 from datetime import datetime
 
 KEY = "00672036b41d4c5b9c44e53c64bd288f"
 ATPT_OFCDC_SC_CODE = "J10"
-SD_SCHUL_CODE = "7010569"
+SD_SCHUL_CODE = "7530626"
 GRADE = "3"
 CLASS_NM = "7"
-SEMESTER = "1"
-date = datetime.today().strftime("%Y%m%d")
 
+today = datetime.today().strftime("%Y%m%d")
 url = (
-    f"https://open.neis.go.kr/hub/hisTimetable?"
-    f"KEY={KEY}&Type=json&ATPT_OFCDC_SC_CODE={ATPT_OFCDC_SC_CODE}"
-    f"&SD_SCHUL_CODE={SD_SCHUL_CODE}&ALL_TI_YMD={date}"
-    f"&GRADE={GRADE}&CLASS_NM={CLASS_NM}&SEM={SEMESTER}"
+    f"https://open.neis.go.kr/hub/hisTimetable"
+    f"?KEY={KEY}&Type=json&pIndex=1&pSize=100"
+    f"&ATPT_OFCDC_SC_CODE={ATPT_OFCDC_SC_CODE}"
+    f"&SD_SCHUL_CODE={SD_SCHUL_CODE}"
+    f"&GRADE={GRADE}&CLASS_NM={CLASS_NM}"
+    f"&ALL_TI_YMD={today}"
 )
+
+print("⏳ 요청 URL:", url)
 
 res = requests.get(url)
 data = res.json()
 
-timetable = {day: [] for day in ["월", "화", "수", "목", "금"]}
+print("📦 전체 JSON 구조:\n", json.dumps(data, indent=2, ensure_ascii=False))
 
-if "hisTimetable" in data:
-    try:
-        rows = data['hisTimetable'][1]['row']
-        for item in rows:
-            day = item['ALL_TI_YMD']
-            weekday = datetime.strptime(day, "%Y%m%d").weekday()
-            subject = item['ITRT_CNTNT']
-            yoil = ["월", "화", "수", "목", "금"][weekday]
-            if subject not in timetable[yoil]:
-                timetable[yoil].append(subject)
-    except Exception as e:
-        print("⚠ 시간표 파싱 실패:", e)
+timetable = {}
 
-with open("timetable.json", "w", encoding="utf-8") as f:
-    json.dump(timetable, f, ensure_ascii=False, indent=2)
+try:
+    rows = data["hisTimetable"][1]["row"]
+    for row in rows:
+        period = row["PERIO"]
+        subject = row["ITRT_CNTNT"]
+        timetable[period] = subject
 
-if any(timetable.values()):
+    with open("timetable.json", "w", encoding="utf-8") as f:
+        json.dump(timetable, f, ensure_ascii=False, indent=2)
     print("✅ 시간표 저장 완료!")
-else:
-    print("❌ 시간표 정보가 없습니다.")
+except Exception as e:
+    print("❌ 시간표 없음 또는 파싱 실패")
+    print("에러 내용:", e)
+
+
